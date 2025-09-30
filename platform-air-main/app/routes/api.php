@@ -1,0 +1,15 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BrandController;
+use App\Http\Controllers\MaintenancesController;
+use App\Http\Controllers\ModelsController;
+
+Route::apiResource('brand', BrandController::class);
+Route::apiResource('model', ModelsController::class);
+
+Route::get('maintenances', [MaintenancesController::class, 'index'])->name('maintenances.index');
+Route::get('maintenances/{maintenance}', [MaintenancesController::class, 'show'])->name('maintenances.show');
+Route::post('maintenances', [MaintenancesController::class, 'store'])->name('maintenances.store');
+Route::patch('maintenances/{maintenance}', [MaintenancesController::class, 'update'])->name('maintenances.update');
+Route::delete('maintenances/{maintenance}', [MaintenancesController::class, 'destroy'])->name('maintenances.destroy');
