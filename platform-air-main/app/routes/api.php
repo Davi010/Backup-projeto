@@ -4,9 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\MaintenancesController;
 use App\Http\Controllers\ModelsController;
+use App\Http\Controllers\EquipmentController;
 
 Route::apiResource('brand', BrandController::class);
 Route::apiResource('model', ModelsController::class);
+Route::apiResource('equipment', EquipmentController::class);
 
 Route::get('maintenances', [MaintenancesController::class, 'index'])->name('maintenances.index');
 Route::get('maintenances/{maintenance}', [MaintenancesController::class, 'show'])->name('maintenances.show');

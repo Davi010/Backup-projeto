@@ -3,12 +3,24 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Location extends Model
 {
-    public function maintenances(): BelongsToMany
+    protected $fillable = [
+        'name',
+        'building',
+        'floor',
+        'sector',
+    ];
+
+    protected $dates = [
+        'created_at',
+        'updated_at',
+    ];
+
+    public function maintenances(): HasMany
     {
-        return $this->belongsToMany(Maintenance::class);
+        return $this->hasMany(Maintenance::class, 'location_id');
     }
 }

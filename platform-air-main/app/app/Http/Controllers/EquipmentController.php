@@ -2,33 +2,33 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ModelsRequest\ModelsIndexRequest;
-use App\Http\Requests\ModelsRequest\ModelsStoreRequest;
-use App\Http\Requests\ModelsRequest\ModelsUpdateRequest;
-use App\Models\Models;
+use App\Http\Requests\EquipmentRequest\EquipmentIndexRequest;
+use App\Http\Requests\EquipmentRequest\EquipmentStoreRequest;
+use App\Http\Requests\EquipmentRequest\EquipmentUpdateRequest;
+use App\Models\Equipment;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
-class ModelsController extends Controller
+class EquipmentController extends Controller
 {
-    private $model;
+    private $equipment;
 
-    public function __construct(Models $model)
+    public function __construct(Equipment $equipment)
     {
-        $this->model = $model;
+        $this->equipment = $equipment;
     }
 
-    public function index(ModelsIndexRequest $request)
+    public function index(EquipmentIndexRequest $request)
     {
         try {
             $perPage = $request->input('per_page', 10);
-            $query = $this->model::query()->with(['brand']);
+            $query = $this->equipment::query()->with(['model.brand']);
 
             if ($name = $request->input('name')) {
                 $query->where('name', 'like', "%{$name}%");
             }
-            if ($brandId = $request->input('brand_id')) {
-                $query->where('brand_id', $brandId);
+            if ($modelId = $request->input('model_id')) {
+                $query->where('model_id', $modelId);
             }
             if ($sort = $request->input('sort')) {
                 $direction = 'asc';
@@ -41,101 +41,103 @@ class ModelsController extends Controller
                 $query->orderBy('id', 'asc');
             }
 
-            $models = $query->paginate($perPage);
+            $equipments = $query->paginate($perPage);
 
             return response()->json([
                 'status' => 'success',
-                'data' => $models->items(),
+                'data' => $equipments->items(),
                 'meta' => [
-                    'current_page' => $models->currentPage(),
-                    'last_page' => $models->lastPage(),
-                    'per_page' => $models->perPage(),
-                    'total' => $models->total(),
+                    'current_page' => $equipments->currentPage(),
+                    'last_page' => $equipments->lastPage(),
+                    'per_page' => $equipments->perPage(),
+                    'total' => $equipments->total(),
                 ],
             ], Response::HTTP_OK);
         } catch (\Exception $e) {
-            Log::error('Error fetching models: ' . $e->getMessage());
+            Log::error('Error fetching equipments: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocorreu um erro ao listar os modelos.',
+                'message' => 'Ocorreu um erro ao listar os equipamentos.',
                 'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    public function store(ModelsStoreRequest $request)
+    public function store(EquipmentStoreRequest $request)
     {
         try {
-            $model = $this->model::create($request->validated());
+            $equipment = $this->equipment::create($request->validated());
 
             return response()->json([
                 'status' => 'success',
-                'data' => $model->load(['brand']),
-                'message' => 'Modelo criado com sucesso!',
+                'data' => $equipment->load(['model.brand']),
+                'message' => 'Equipamento criado com sucesso!',
             ], Response::HTTP_CREATED);
         } catch (\Exception $e) {
-            Log::error('Error storing model: ' . $e->getMessage());
+            Log::error('Error storing equipment: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocorreu um erro ao salvar o modelo.',
+                'message' => 'Ocorreu um erro ao criar o equipamento.',
                 'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    public function show(Models $model)
+    public function show(Equipment $equipment)
     {
         try {
             return response()->json([
                 'status' => 'success',
-                'data' => $model->load(['brand']),
+                'data' => $equipment->load(['model.brand']),
             ], Response::HTTP_OK);
         } catch (\Exception $e) {
-            Log::error('Error showing model: ' . $e->getMessage());
+            Log::error('Error showing equipment: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocorreu um erro ao exibir o modelo.',
+                'message' => 'Ocorreu um erro ao exibir o equipamento.',
                 'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    public function update(ModelsUpdateRequest $request, Models $model)
+    public function update(EquipmentUpdateRequest $request, Equipment $equipment)
     {
         try {
-            $model->update($request->validated());
+            $equipment->update($request->validated());
 
             return response()->json([
                 'status' => 'success',
-                'data' => $model->load(['brand']),
-                'message' => 'Modelo atualizado com sucesso!',
+                'data' => $equipment->load(['model.brand']),
+                'message' => 'Equipamento atualizado com sucesso!',
             ], Response::HTTP_OK);
         } catch (\Exception $e) {
-            Log::error('Error updating model: ' . $e->getMessage());
+            Log::error('Error updating equipment: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocorreu um erro ao atualizar o modelo.',
+                'message' => 'Ocorreu um erro ao atualizar o equipamento.',
                 'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    public function destroy(Models $model)
+    public function destroy(Equipment $equipment)
     {
         try {
-            $model->delete();
+            $equipment->delete();
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Modelo deletado com sucesso!',
+                'message' => 'Equipamento deletado com sucesso!',
             ], Response::HTTP_NO_CONTENT);
         } catch (\Exception $e) {
-            Log::error('Error deleting model: ' . $e->getMessage());
+            Log::error('Error deleting equipment: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocorreu um erro ao excluir o modelo.',
+                'message' => 'Ocorreu um erro ao deletar o equipamento.',
                 'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }
+
+

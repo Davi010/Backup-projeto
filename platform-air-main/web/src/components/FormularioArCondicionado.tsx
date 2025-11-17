@@ -1,33 +1,128 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { MapPin, ArrowLeft, Save, X } from 'lucide-react';
+import { MapPin, ArrowLeft, Save, X, AlertCircle, Loader2 } from 'lucide-react';
+import { useBrands } from '../hooks/useBrands';
+import { useModels } from '../hooks/useModels';
+import { useEquipments } from '../hooks/useEquipments';
+import { Equipment } from '../services/equipmentService';
 
 interface FormularioArCondicionadoProps {
   onVoltar: () => void;
+  editingAr?: Equipment | any | null;
 }
 
-export function FormularioArCondicionado({ onVoltar }: FormularioArCondicionadoProps) {
+interface FormErrors {
+  [key: string]: string;
+}
+
+export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCondicionadoProps) {
+  const { brands, loading: loadingBrands } = useBrands();
+  const { models, loading: loadingModels } = useModels();
+  const { createEquipment, updateEquipment } = useEquipments();
+  const [selectedBrandId, setSelectedBrandId] = useState<string>(
+    editingAr?.model?.brand_id?.toString() || ''
+  );
+
   const [formData, setFormData] = useState({
-    nome: '',
-    localizacao: '',
-    descricao: '',
-    status: 'ativo',
-    modelo: '',
-    marca: '',
-    numeroSerie: '',
-    capacidadeBtu: '',
-    temperaturaConfigurada: '22'
+    name: editingAr?.name || '',
+    model_id: editingAr?.model_id?.toString() || '',
+    quantity: editingAr?.quantity?.toString() || '1',
+    notes: editingAr?.notes || ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Atualizar formulário quando editingAr mudar
+  useEffect(() => {
+    if (editingAr) {
+      setFormData({
+        name: editingAr.name || '',
+        model_id: editingAr.model_id?.toString() || '',
+        quantity: editingAr.quantity?.toString() || '1',
+        notes: editingAr.notes || ''
+      });
+      setSelectedBrandId(editingAr.model?.brand_id?.toString() || '');
+    } else {
+      setFormData({
+        name: '',
+        model_id: '',
+        quantity: '1',
+        notes: ''
+      });
+      setSelectedBrandId('');
+    }
+  }, [editingAr]);
+
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.name || formData.name.trim().length < 3) {
+      newErrors.name = 'O nome do equipamento deve ter pelo menos 3 caracteres';
+    }
+
+    if (!formData.model_id) {
+      newErrors.model_id = 'O modelo é obrigatório';
+    }
+
+    if (parseInt(formData.quantity) < 1) {
+      newErrors.quantity = 'A quantidade deve ser pelo menos 1';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Dados do formulário:', formData);
-    // Aqui você implementaria a lógica para salvar
+    setSubmitError('');
+    setSubmitSuccess(false);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const equipmentData = {
+        name: formData.name.trim(),
+        model_id: parseInt(formData.model_id),
+        quantity: parseInt(formData.quantity),
+        notes: formData.notes.trim() || undefined,
+      };
+
+      let response;
+      if (editingAr?.id) {
+        // Modo edição
+        response = await updateEquipment(editingAr.id, equipmentData);
+      } else {
+        // Modo criação
+        response = await createEquipment(equipmentData);
+      }
+      
+      if (response.status === 'success') {
+        setSubmitSuccess(true);
+        setTimeout(() => {
+          onVoltar();
+        }, 1500);
+      } else {
+        setSubmitError(response.message || 'Erro ao salvar equipamento. Tente novamente.');
+      }
+    } catch (error) {
+      setSubmitError('Erro ao salvar equipamento. Tente novamente.');
+      console.error('Erro ao salvar:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -35,6 +130,15 @@ export function FormularioArCondicionado({ onVoltar }: FormularioArCondicionadoP
       ...prev,
       [field]: value
     }));
+    
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   return (
@@ -51,10 +155,12 @@ export function FormularioArCondicionado({ onVoltar }: FormularioArCondicionadoP
         </Button>
         
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Novo Ar Condicionado
+          {editingAr ? 'Editar Ar Condicionado' : 'Novo Ar Condicionado'}
         </h1>
         <p className="text-gray-600">
-          Cadastre um novo aparelho de ar condicionado no sistema
+          {editingAr 
+            ? 'Edite as informações do aparelho de ar condicionado'
+            : 'Cadastre um novo aparelho de ar condicionado no sistema'}
         </p>
       </div>
 
@@ -72,153 +178,164 @@ export function FormularioArCondicionado({ onVoltar }: FormularioArCondicionadoP
           </div>
         </CardHeader>
         <CardContent>
+          {submitSuccess && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800">
+              <AlertCircle className="h-5 w-5" />
+              <span>Equipamento salvo com sucesso!</span>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
+              <AlertCircle className="h-5 w-5" />
+              <span>{submitError}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Informações da Sala */}
+            {/* Nome do Equipamento */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium">
+                Nome do Equipamento <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                placeholder="Ex: Ar Condicionado Sala 101"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                required
+                className={errors.name ? 'border-red-500' : ''}
+              />
+              {errors.name && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.name}
+                </p>
+              )}
+            </div>
+
+            {/* Informações de Marca e Modelo */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="nome" className="text-sm font-medium">
-                  Nome da Sala <span className="text-red-500">*</span>
+                <Label htmlFor="brand_filter" className="text-sm font-medium">
+                  Filtrar por Marca
                 </Label>
-                <Input
-                  id="nome"
-                  placeholder="Ex: Sala 101 - Matemática"
-                  value={formData.nome}
-                  onChange={(e) => handleInputChange('nome', e.target.value)}
-                  required
-                />
+                <Select 
+                  value={selectedBrandId} 
+                  onValueChange={(value) => {
+                    setSelectedBrandId(value);
+                    handleInputChange('model_id', ''); // Limpar modelo quando mudar marca
+                  }}
+                  disabled={loadingBrands}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingBrands ? "Carregando..." : "Filtrar por marca (opcional)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as marcas</SelectItem>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id.toString()}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="localizacao" className="text-sm font-medium">
-                  Localização <span className="text-red-500">*</span>
+                <Label htmlFor="model_id" className="text-sm font-medium">
+                  Modelo <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="localizacao"
-                  placeholder="Ex: Prédio A - 1º Andar"
-                  value={formData.localizacao}
-                  onChange={(e) => handleInputChange('localizacao', e.target.value)}
-                  required
-                />
+                <Select 
+                  value={formData.model_id} 
+                  onValueChange={(value) => handleInputChange('model_id', value)}
+                  disabled={loadingModels}
+                >
+                  <SelectTrigger className={errors.model_id ? 'border-red-500' : ''}>
+                    <SelectValue placeholder={loadingModels ? "Carregando..." : "Selecione o modelo"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models
+                      .filter(model => !selectedBrandId || model.brand_id.toString() === selectedBrandId)
+                      .map((model) => (
+                        <SelectItem key={model.id} value={model.id.toString()}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {errors.model_id && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.model_id}
+                  </p>
+                )}
               </div>
             </div>
 
+            {/* Quantidade */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="quantity" className="text-sm font-medium">
+                  Quantidade <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={formData.quantity}
+                  onChange={(e) => handleInputChange('quantity', e.target.value)}
+                  required
+                  className={errors.quantity ? 'border-red-500' : ''}
+                />
+                {errors.quantity && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.quantity}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Notas/Observações */}
             <div className="space-y-2">
-              <Label htmlFor="descricao" className="text-sm font-medium">
-                Descrição
+              <Label htmlFor="notes" className="text-sm font-medium">
+                Notas/Observações
               </Label>
               <Textarea
-                id="descricao"
-                placeholder="Descreva informações adicionais sobre a sala..."
-                value={formData.descricao}
-                onChange={(e) => handleInputChange('descricao', e.target.value)}
+                id="notes"
+                placeholder="Informações adicionais sobre o equipamento..."
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
                 rows={3}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status" className="text-sm font-medium">
-                Status <span className="text-red-500">*</span>
-              </Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => handleInputChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ativo">Ativo</SelectItem>
-                  <SelectItem value="manutencao">Manutenção</SelectItem>
-                  <SelectItem value="inativo">Inativo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Informações do Aparelho */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold mb-4">Especificações do Aparelho</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="modelo" className="text-sm font-medium">
-                    Modelo <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="modelo"
-                    placeholder="Ex: Split Hi-Wall 12000 BTU"
-                    value={formData.modelo}
-                    onChange={(e) => handleInputChange('modelo', e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="marca" className="text-sm font-medium">
-                    Marca <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="marca"
-                    placeholder="Ex: LG, Samsung, Daikin"
-                    value={formData.marca}
-                    onChange={(e) => handleInputChange('marca', e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="numeroSerie" className="text-sm font-medium">
-                    Número de Série <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="numeroSerie"
-                    placeholder="Ex: LG2024001"
-                    value={formData.numeroSerie}
-                    onChange={(e) => handleInputChange('numeroSerie', e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <div className="space-y-2">
-                  <Label htmlFor="capacidadeBtu" className="text-sm font-medium">
-                    Capacidade (BTU) <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="capacidadeBtu"
-                    type="number"
-                    placeholder="Ex: 12000"
-                    value={formData.capacidadeBtu}
-                    onChange={(e) => handleInputChange('capacidadeBtu', e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="temperaturaConfigurada" className="text-sm font-medium">
-                    Temperatura Configurada (°C)
-                  </Label>
-                  <Input
-                    id="temperaturaConfigurada"
-                    type="number"
-                    placeholder="22"
-                    value={formData.temperaturaConfigurada}
-                    onChange={(e) => handleInputChange('temperaturaConfigurada', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Botões de Ação */}
             <div className="flex gap-4 pt-6 border-t">
-              <Button type="submit" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-                <Save className="h-4 w-4" />
-                Salvar Ar Condicionado
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || loadingBrands || loadingModels}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Salvar Equipamento
+                  </>
+                )}
               </Button>
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={onVoltar}
+                disabled={isSubmitting}
                 className="flex items-center gap-2"
               >
                 <X className="h-4 w-4" />
