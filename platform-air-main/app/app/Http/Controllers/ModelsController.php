@@ -22,10 +22,13 @@ class ModelsController extends Controller
     {
         try {
             $perPage = $request->input('per_page', 10);
-            $query = $this->model::query();
+            $query = $this->model::query()->with(['brand']);
 
             if ($name = $request->input('name')) {
                 $query->where('name', 'like', "%{$name}%");
+            }
+            if ($brandId = $request->input('brand_id')) {
+                $query->where('brand_id', $brandId);
             }
             if ($sort = $request->input('sort')) {
                 $direction = 'asc';
@@ -67,7 +70,7 @@ class ModelsController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $model,
+                'data' => $model->load(['brand']),
                 'message' => 'Modelo criado com sucesso!',
             ], Response::HTTP_CREATED);
         } catch (\Exception $e) {
@@ -85,7 +88,7 @@ class ModelsController extends Controller
         try {
             return response()->json([
                 'status' => 'success',
-                'data' => $model,
+                'data' => $model->load(['brand']),
             ], Response::HTTP_OK);
         } catch (\Exception $e) {
             Log::error('Error showing model: ' . $e->getMessage());
@@ -104,7 +107,7 @@ class ModelsController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $model,
+                'data' => $model->load(['brand']),
                 'message' => 'Modelo atualizado com sucesso!',
             ], Response::HTTP_OK);
         } catch (\Exception $e) {

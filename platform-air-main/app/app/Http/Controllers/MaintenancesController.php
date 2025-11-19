@@ -2,61 +2,136 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MaintenanceRequest\MaintenanceIndexRequest;
+use App\Http\Requests\MaintenanceRequest\MaintenanceStoreRequest;
+use App\Http\Requests\MaintenanceRequest\MaintenanceUpdateRequest;
 use App\Models\Maintenance;
-use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class MaintenancesController extends Controller
 {
-    public function index()
+    public function index(MaintenanceIndexRequest $request)
     {
-        return Maintenance::all();
+        try {
+            $perPage = $request->input('per_page', 10);
+            $query = Maintenance::query()->with(['equipment.model.brand']);
+
+            if ($equipmentId = $request->input('equipment_id')) {
+                $query->where('equipment_id', $equipmentId);
+            }
+            if ($locationId = $request->input('location_id')) {
+                $query->where('location_id', $locationId);
+            }
+            if ($userId = $request->input('user_id')) {
+                $query->where('user_id', $userId);
+            }
+            if ($sort = $request->input('sort')) {
+                $direction = 'asc';
+                if (str_starts_with($sort, '-')) {
+                    $direction = 'desc';
+                    $sort = substr($sort, 1);
+                }
+                $query->orderBy($sort, $direction);
+            } else {
+                $query->orderBy('service_date', 'desc');
+            }
+
+            $maintenances = $query->paginate($perPage);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $maintenances->items(),
+                'meta' => [
+                    'current_page' => $maintenances->currentPage(),
+                    'last_page' => $maintenances->lastPage(),
+                    'per_page' => $maintenances->perPage(),
+                    'total' => $maintenances->total(),
+                ],
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            Log::error('Error fetching maintenances: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocorreu um erro ao listar as manutenções.',
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     public function show(Maintenance $maintenance)
     {
-        return $maintenance;
+        try {
+            return response()->json([
+                'status' => 'success',
+                'data' => $maintenance->load(['equipment.model.brand']),
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            Log::error('Error showing maintenance: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocorreu um erro ao exibir a manutenção.',
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
-    public function store(Request $request)
+    public function store(MaintenanceStoreRequest $request)
     {
-        $validated = $request->validate([
-            'equipment_id' => 'required|integer',
-            'user_id' => 'required|integer',
-            'user_name' => 'sometimes|string',
-            'location_id' => 'required|integer',
-            'location_name' => 'sometimes|string',            
-            'description' => 'sometimes|string',
-            'service_date' => 'required|date'
-        ]);
+        try {
+            $maintenance = Maintenance::create($request->validated());
 
-        $maintenance = Maintenance::create($validated);
-
-        return $maintenance;
+            return response()->json([
+                'status' => 'success',
+                'data' => $maintenance->load(['equipment.model.brand']),
+                'message' => 'Manutenção criada com sucesso!',
+            ], Response::HTTP_CREATED);
+        } catch (\Exception $e) {
+            Log::error('Error storing maintenance: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocorreu um erro ao criar a manutenção.',
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
-    public function update(Request $request, Maintenance $maintenance)
+    public function update(MaintenanceUpdateRequest $request, Maintenance $maintenance)
     {
-        $validated = $request->validate([
-            'equipment_id'   => 'sometimes|required|integer',
-            'user_id'        => 'sometimes|required|integer',
-            'user_name'      => 'sometimes|string',
-            'location_id'    => 'sometimes|required|integer',
-            'location_name'  => 'sometimes|string',
-            'description'    => 'sometimes|string',
-            'service_date'   => 'sometimes|required|date'
-        ]);
+        try {
+            $maintenance->update($request->validated());
 
-        $maintenance->update($validated);
-
-        return response()->json($maintenance);
+            return response()->json([
+                'status' => 'success',
+                'data' => $maintenance->load(['equipment.model.brand']),
+                'message' => 'Manutenção atualizada com sucesso!',
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            Log::error('Error updating maintenance: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocorreu um erro ao atualizar a manutenção.',
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     public function destroy(Maintenance $maintenance)
     {
-        $maintenance->delete();
+        try {
+            $maintenance->delete();
 
-        return response()->json([
-            'message' => 'Maintenance deleted successfully.'
-        ], 200);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Manutenção deletada com sucesso!',
+            ], Response::HTTP_NO_CONTENT);
+        } catch (\Exception $e) {
+            Log::error('Error deleting maintenance: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocorreu um erro ao deletar a manutenção.',
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 }

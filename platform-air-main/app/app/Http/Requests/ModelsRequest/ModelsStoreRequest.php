@@ -14,17 +14,32 @@ class ModelsStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'sometimes|string|max:255',
-            'brand_id' => 'sometimes|integer|exists:brands,id',];
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[A-Za-z0-9À-ú\s]+$/',
+                'not_regex:/^\s*$/',
+            ],
+            'brand_id' => [
+                'required',
+                'integer',
+                'exists:brands,id',
+            ],
+        ];
     }
 
     public function messages(): array
     {
         return [
-            'name.string' => 'O campo name deve ser uma string.',
-            'name.max' => 'O campo name não pode exceder 255 caracteres.',
+            'name.required' => 'O nome do modelo é obrigatório.',
+            'name.string' => 'O nome do modelo deve ser uma string.',
+            'name.max' => 'O nome do modelo não pode ter mais de 255 caracteres.',
+            'name.regex' => 'O nome do modelo só pode conter letras, números e espaços.',
+            'name.not_regex' => 'O nome do modelo não pode estar vazio ou conter apenas espaços.',
+            'brand_id.required' => 'A marca é obrigatória.',
             'brand_id.integer' => 'O campo brand_id deve ser um número inteiro.',
-            'brand_id.exists' => 'O brand_id fornecido não existe na tabela brands.',
+            'brand_id.exists' => 'A marca selecionada não existe no sistema.',
         ];
     }
 }

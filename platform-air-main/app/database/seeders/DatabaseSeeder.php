@@ -19,5 +19,10 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Popular marcas e modelos predefinidos
+        $this->call([
+            BrandModelSeeder::class,
+        ]);
     }
 }

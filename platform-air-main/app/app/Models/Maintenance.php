@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Maintenance extends Model
 {
@@ -17,13 +17,19 @@ class Maintenance extends Model
         'service_date'
     ];
 
-    public function equipment(): HasOne
+    protected $dates = [
+        'service_date',
+        'created_at',
+        'updated_at',
+    ];
+
+    public function equipment(): BelongsTo
     {
-        return $this->hasOne(Equipment::class);
+        return $this->belongsTo(Equipment::class, 'equipment_id');
     }
 
-    public function location(): HasOne
+    public function location(): BelongsTo
     {
-        return $this->hasOne(Location::class);
+        return $this->belongsTo(Location::class, 'location_id');
     }
 }

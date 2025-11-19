@@ -37,12 +37,18 @@ cd sistema-ar-condicionado
 npm install
 ```
 
-3. Execute o projeto em modo de desenvolvimento:
+3. Configure a URL da API:
+```bash
+# Crie um arquivo .env na pasta web/ com:
+VITE_API_BASE_URL=http://localhost:8080/api
+```
+
+4. Execute o projeto em modo de desenvolvimento:
 ```bash
 npm run dev
 ```
 
-4. Abra o navegador em `http://localhost:3000`
+5. Abra o navegador em `http://localhost:3000`
 
 ## 📁 Estrutura do Projeto
 
@@ -52,6 +58,17 @@ src/
 │   ├── ui/             # Componentes base do Shadcn/UI
 │   ├── DashboardArCondicionado.tsx    # Dashboard principal
 │   └── FormularioArCondicionado.tsx   # Formulário de cadastro
+├── services/           # Serviços de API
+│   ├── api.ts          # Configuração base da API
+│   ├── brandService.ts
+│   ├── modelService.ts
+│   ├── equipmentService.ts
+│   └── maintenanceService.ts
+├── hooks/              # Hooks customizados
+│   ├── useBrands.ts
+│   ├── useModels.ts
+│   ├── useEquipments.ts
+│   └── useMaintenances.ts
 ├── types/              # Definições de tipos TypeScript
 ├── data/               # Dados mock para demonstração
 ├── lib/                # Utilitários
@@ -66,16 +83,49 @@ src/
 - **Filtros**: Busque por sala, localização ou modelo específico
 - **Tabela**: Lista completa de todos os aparelhos com status e informações
 
-### Cadastro de Novo Aparelho
+### Cadastro de Novo Equipamento
 - Clique no botão "+ Novo Ar Condicionado"
-- Preencha as informações da sala e do aparelho
-- Configure temperatura e especificações técnicas
+- Preencha as informações obrigatórias:
+  - **Nome do Equipamento**: Mínimo de 3 caracteres
+  - **Marca e Modelo**: Selecione da lista carregada do backend
+  - **Quantidade**: Mínimo de 1 unidade
+- Configure notas adicionais (opcional)
 - Salve ou cancele a operação
 
 ### Navegação
 - **Voltar**: Use o botão "← Voltar" para retornar ao dashboard
 - **API Docs**: Acesse a documentação da API
 - **Filtros**: Utilize a busca e filtros avançados
+
+## ✅ Validação e Backend
+
+### Validação de Formulários
+O sistema possui validação completa em dois níveis:
+
+1. **Validação no Frontend**: 
+   - Campos obrigatórios verificados antes do envio
+   - Mensagens de erro em tempo real
+   - Feedback visual para campos inválidos
+
+2. **Validação no Backend**:
+   - Regras de negócio aplicadas no Laravel
+   - Proteção contra dados inválidos
+   - Mensagens de erro retornadas da API
+
+### Conexão com Backend
+O frontend está completamente integrado com a API Laravel:
+
+- **Marcas (Brands)**: GET, POST, PUT, DELETE
+- **Modelos (Models)**: GET, POST, PUT, DELETE
+- **Equipamentos (Equipment)**: GET, POST, PUT, DELETE
+- **Manutenções (Maintenances)**: GET, POST, PATCH, DELETE
+
+Todos os serviços utilizam:
+- Tratamento de erros robusto
+- Estados de loading
+- Paginação automática
+- Filtros e ordenação
+- Relacionamentos entre modelos (Brand → Models → Equipment)
 
 ## 🔧 Scripts Disponíveis
 

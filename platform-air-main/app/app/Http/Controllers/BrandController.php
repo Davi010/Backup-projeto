@@ -23,7 +23,7 @@ class BrandController extends Controller
         try
         {
             $perPage = $request->input('per_page', 10);
-            $query = $this->brand::query();
+            $query = $this->brand::query()->withCount('models');
 
             if ($name = $request->input('name')) {
                 $query->where('name', 'like', "%{$name}%");
