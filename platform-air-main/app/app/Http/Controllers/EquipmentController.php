@@ -67,10 +67,13 @@ class EquipmentController extends Controller
     {
         try {
             $equipment = $this->equipment::create($request->validated());
+            
+            // Carregar relacionamentos apenas uma vez
+            $equipment->load(['model.brand']);
 
             return response()->json([
                 'status' => 'success',
-                'data' => $equipment->load(['model.brand']),
+                'data' => $equipment,
                 'message' => 'Equipamento criado com sucesso!',
             ], Response::HTTP_CREATED);
         } catch (\Exception $e) {
@@ -104,10 +107,15 @@ class EquipmentController extends Controller
     {
         try {
             $equipment->update($request->validated());
+            
+            // Carregar relacionamentos apenas uma vez (sem refresh desnecessário)
+            if (!$equipment->relationLoaded('model')) {
+                $equipment->load(['model.brand']);
+            }
 
             return response()->json([
                 'status' => 'success',
-                'data' => $equipment->load(['model.brand']),
+                'data' => $equipment,
                 'message' => 'Equipamento atualizado com sucesso!',
             ], Response::HTTP_OK);
         } catch (\Exception $e) {
@@ -120,15 +128,24 @@ class EquipmentController extends Controller
         }
     }
 
-    public function destroy(Equipment $equipment)
+    public function destroy($id)
     {
         try {
+            $equipment = $this->equipment::find($id);
+            
+            if (!$equipment) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Equipamento não encontrado.',
+                ], Response::HTTP_NOT_FOUND);
+            }
+
             $equipment->delete();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Equipamento deletado com sucesso!',
-            ], Response::HTTP_NO_CONTENT);
+            ], Response::HTTP_OK);
         } catch (\Exception $e) {
             Log::error('Error deleting equipment: ' . $e->getMessage());
             return response()->json([

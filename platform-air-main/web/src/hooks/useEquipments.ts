@@ -38,7 +38,11 @@ export const useEquipments = (): UseEquipmentsReturn => {
     setError(null);
     try {
       const response = await equipmentService.create(data);
-      if (response.status === 'success') {
+      if (response.status === 'success' && response.data) {
+        // Adicionar o novo equipamento à lista sem recarregar tudo
+        setEquipments(prev => [...prev, response.data!]);
+      } else {
+        // Se não tiver dados, recarregar a lista
         await fetchEquipments();
       }
       return response;
@@ -56,7 +60,11 @@ export const useEquipments = (): UseEquipmentsReturn => {
     setError(null);
     try {
       const response = await equipmentService.update(id, data);
-      if (response.status === 'success') {
+      if (response.status === 'success' && response.data) {
+        // Atualizar o equipamento na lista sem recarregar tudo
+        setEquipments(prev => prev.map(eq => eq.id === id ? response.data! : eq));
+      } else {
+        // Se não tiver dados, recarregar a lista
         await fetchEquipments();
       }
       return response;
@@ -75,6 +83,10 @@ export const useEquipments = (): UseEquipmentsReturn => {
     try {
       const response = await equipmentService.delete(id);
       if (response.status === 'success') {
+        // Remover o equipamento da lista sem recarregar tudo
+        setEquipments(prev => prev.filter(eq => eq.id !== id));
+      } else {
+        // Se houver erro, recarregar a lista para garantir consistência
         await fetchEquipments();
       }
       return response;

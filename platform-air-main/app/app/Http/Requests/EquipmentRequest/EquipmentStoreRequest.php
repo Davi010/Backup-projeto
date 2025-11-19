@@ -19,8 +19,6 @@ class EquipmentStoreRequest extends FormRequest
                 'string',
                 'max:255',
                 'min:3',
-                'regex:/^[A-Za-z0-9À-ú\s\-_]+$/',
-                'not_regex:/^\s*$/',
             ],
             'model_id' => [
                 'required',
@@ -59,8 +57,6 @@ class EquipmentStoreRequest extends FormRequest
             'name.string' => 'O nome do equipamento deve ser uma string.',
             'name.min' => 'O nome do equipamento deve ter no mínimo 3 caracteres.',
             'name.max' => 'O nome do equipamento não pode ter mais de 255 caracteres.',
-            'name.regex' => 'O nome do equipamento só pode conter letras, números, espaços, hífens e underscores.',
-            'name.not_regex' => 'O nome do equipamento não pode estar vazio ou conter apenas espaços.',
             'model_id.required' => 'O modelo é obrigatório.',
             'model_id.integer' => 'O campo model_id deve ser um número inteiro.',
             'model_id.exists' => 'O modelo selecionado não existe no sistema.',

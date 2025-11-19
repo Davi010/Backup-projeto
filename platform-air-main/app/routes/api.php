@@ -8,7 +8,8 @@ use App\Http\Controllers\EquipmentController;
 
 Route::apiResource('brand', BrandController::class);
 Route::apiResource('model', ModelsController::class);
-Route::apiResource('equipment', EquipmentController::class);
+Route::apiResource('equipment', EquipmentController::class)->except(['destroy']);
+Route::delete('equipment/{id}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
 
 Route::get('maintenances', [MaintenancesController::class, 'index'])->name('maintenances.index');
 Route::get('maintenances/{maintenance}', [MaintenancesController::class, 'show'])->name('maintenances.show');
