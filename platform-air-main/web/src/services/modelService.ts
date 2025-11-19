@@ -6,6 +6,10 @@ export interface Model {
   brand_id: number;
   created_at: string;
   updated_at: string;
+  brand?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface ModelCreateData {
@@ -59,5 +63,8 @@ export const modelService = {
 };
 
 export default modelService;
+
+
+
 
 

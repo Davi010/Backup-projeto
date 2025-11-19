@@ -21,7 +21,8 @@ export const useModels = (): UseModelsReturn => {
     setLoading(true);
     setError(null);
     try {
-      const response = await modelService.list();
+      // Buscar todos os modelos (sem limite de paginação)
+      const response = await modelService.list({ per_page: 100 });
       if (response.status === 'success' && response.data) {
         setModels(response.data);
       } else {
@@ -29,6 +30,7 @@ export const useModels = (): UseModelsReturn => {
       }
     } catch (err) {
       setError('Erro de conexão ao carregar modelos');
+      console.error('Erro ao buscar modelos:', err);
     } finally {
       setLoading(false);
     }
@@ -102,5 +104,8 @@ export const useModels = (): UseModelsReturn => {
     deleteModel,
   };
 };
+
+
+
 
 

@@ -5,6 +5,8 @@ export interface Equipment {
   name: string;
   model_id: number;
   quantity: number;
+  btus?: number;
+  status: 'funcionando' | 'manutencao' | 'defeito' | 'desativado';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -23,6 +25,8 @@ export interface EquipmentCreateData {
   name: string;
   model_id: number;
   quantity: number;
+  btus?: number;
+  status: 'funcionando' | 'manutencao' | 'defeito' | 'desativado';
   notes?: string;
 }
 
@@ -30,6 +34,8 @@ export interface EquipmentUpdateData {
   name?: string;
   model_id?: number;
   quantity?: number;
+  btus?: number;
+  status?: 'funcionando' | 'manutencao' | 'defeito' | 'desativado';
   notes?: string;
 }
 
@@ -76,5 +82,8 @@ export const equipmentService = {
 };
 
 export default equipmentService;
+
+
+
 
 

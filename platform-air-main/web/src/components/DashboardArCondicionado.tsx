@@ -260,6 +260,8 @@ export function DashboardArCondicionado() {
                   <TableHead>Modelo</TableHead>
                   <TableHead>Marca</TableHead>
                   <TableHead>Quantidade</TableHead>
+                  <TableHead>BTUs</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Notas</TableHead>
                   <TableHead>Cadastrado em</TableHead>
                   <TableHead>Ações</TableHead>
@@ -287,6 +289,26 @@ export function DashboardArCondicionado() {
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500" />
                         <span className="font-medium">{equipment.quantity}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-600">
+                        {equipment.btus ? `${equipment.btus.toLocaleString('pt-BR')} BTU` : '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          equipment.status === 'funcionando' ? 'bg-green-100 text-green-800' :
+                          equipment.status === 'manutencao' ? 'bg-yellow-100 text-yellow-800' :
+                          equipment.status === 'defeito' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {equipment.status === 'funcionando' ? 'Funcionando' :
+                           equipment.status === 'manutencao' ? 'Manutenção' :
+                           equipment.status === 'defeito' ? 'Defeito' :
+                           'Desativado'}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>

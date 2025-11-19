@@ -7,6 +7,7 @@ export interface ApiResponse<T> {
   data?: T;
   message?: string;
   error?: string;
+  errors?: Record<string, string[]>;
   meta?: {
     current_page: number;
     last_page: number;
@@ -58,7 +59,7 @@ async function fetchApi<T>(
         status: 'error',
         message: data.message || data.error || 'Ocorreu um erro na requisição',
         error: data.error || data.message,
-        errors: data.errors,
+        errors: data.errors || (data.status === 'error' && data.errors ? data.errors : undefined),
       };
     }
 

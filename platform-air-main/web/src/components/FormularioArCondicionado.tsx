@@ -21,9 +21,25 @@ interface FormErrors {
 }
 
 export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCondicionadoProps) {
-  const { brands, loading: loadingBrands } = useBrands();
-  const { models, loading: loadingModels } = useModels();
+  const { brands, loading: loadingBrands, error: brandsError } = useBrands();
+  const { models, loading: loadingModels, error: modelsError } = useModels();
   const { createEquipment, updateEquipment } = useEquipments();
+
+  // Debug: verificar se os dados estão sendo carregados
+  React.useEffect(() => {
+    if (brands.length > 0) {
+      console.log('Marcas carregadas:', brands.length, brands);
+    }
+    if (models.length > 0) {
+      console.log('Modelos carregados:', models.length, models);
+    }
+    if (brandsError) {
+      console.error('Erro ao carregar marcas:', brandsError);
+    }
+    if (modelsError) {
+      console.error('Erro ao carregar modelos:', modelsError);
+    }
+  }, [brands, models, brandsError, modelsError]);
   const [selectedBrandId, setSelectedBrandId] = useState<string>(
     editingAr?.model?.brand_id?.toString() || ''
   );
@@ -32,6 +48,8 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
     name: editingAr?.name || '',
     model_id: editingAr?.model_id?.toString() || '',
     quantity: editingAr?.quantity?.toString() || '1',
+    btus: editingAr?.btus?.toString() || '',
+    status: editingAr?.status || 'funcionando',
     notes: editingAr?.notes || ''
   });
 
@@ -47,6 +65,8 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
         name: editingAr.name || '',
         model_id: editingAr.model_id?.toString() || '',
         quantity: editingAr.quantity?.toString() || '1',
+        btus: editingAr.btus?.toString() || '',
+        status: editingAr.status || 'funcionando',
         notes: editingAr.notes || ''
       });
       setSelectedBrandId(editingAr.model?.brand_id?.toString() || '');
@@ -55,6 +75,8 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
         name: '',
         model_id: '',
         quantity: '1',
+        btus: '',
+        status: 'funcionando',
         notes: ''
       });
       setSelectedBrandId('');
@@ -77,6 +99,14 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
       newErrors.quantity = 'A quantidade deve ser pelo menos 1';
     }
 
+    if (formData.btus && (parseInt(formData.btus) < 7000 || parseInt(formData.btus) > 120000)) {
+      newErrors.btus = 'Os BTUs devem estar entre 7000 e 120000';
+    }
+
+    if (!formData.status) {
+      newErrors.status = 'O status é obrigatório';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,12 +123,23 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
     setIsSubmitting(true);
 
     try {
-      const equipmentData = {
+      // Preparar dados para envio, removendo campos vazios/undefined
+      const equipmentData: any = {
         name: formData.name.trim(),
         model_id: parseInt(formData.model_id),
         quantity: parseInt(formData.quantity),
-        notes: formData.notes.trim() || undefined,
+        status: formData.status as 'funcionando' | 'manutencao' | 'defeito' | 'desativado',
       };
+
+      // Adicionar BTUs apenas se preenchido
+      if (formData.btus && formData.btus.trim() !== '') {
+        equipmentData.btus = parseInt(formData.btus);
+      }
+
+      // Adicionar notas apenas se preenchido
+      if (formData.notes && formData.notes.trim() !== '') {
+        equipmentData.notes = formData.notes.trim();
+      }
 
       let response;
       if (editingAr?.id) {
@@ -115,7 +156,15 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
           onVoltar();
         }, 1500);
       } else {
-        setSubmitError(response.message || 'Erro ao salvar equipamento. Tente novamente.');
+        // Mostrar erros de validação se existirem
+        let errorMessage = response.message || 'Erro ao salvar equipamento. Tente novamente.';
+        
+        if ('errors' in response && response.errors) {
+          const errorMessages = Object.values(response.errors).flat();
+          errorMessage = errorMessages.join(', ') || errorMessage;
+        }
+        
+        setSubmitError(errorMessage);
       }
     } catch (error) {
       setSubmitError('Erro ao salvar equipamento. Tente novamente.');
@@ -126,9 +175,12 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
   };
 
   const handleInputChange = (field: string, value: string) => {
+    // Garantir que nunca seja string vazia para campos de select
+    const sanitizedValue = (field === 'model_id' && value === '') ? '' : value;
+    
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: sanitizedValue
     }));
     
     // Limpar erro do campo quando o usuário começar a digitar
@@ -221,9 +273,9 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
                   Filtrar por Marca
                 </Label>
                 <Select 
-                  value={selectedBrandId} 
+                  value={selectedBrandId || 'all'} 
                   onValueChange={(value) => {
-                    setSelectedBrandId(value);
+                    setSelectedBrandId(value === 'all' ? '' : value);
                     handleInputChange('model_id', ''); // Limpar modelo quando mudar marca
                   }}
                   disabled={loadingBrands}
@@ -232,14 +284,26 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
                     <SelectValue placeholder={loadingBrands ? "Carregando..." : "Filtrar por marca (opcional)"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as marcas</SelectItem>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
+                    <SelectItem value="all">Todas as marcas</SelectItem>
+                    {brands.length === 0 && !loadingBrands ? (
+                      <SelectItem value="no-brands" disabled>
+                        Nenhuma marca disponível
                       </SelectItem>
-                    ))}
+                    ) : (
+                      brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id.toString()}>
+                          {brand.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {brandsError && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {brandsError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -247,21 +311,40 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
                   Modelo <span className="text-red-500">*</span>
                 </Label>
                 <Select 
-                  value={formData.model_id} 
-                  onValueChange={(value) => handleInputChange('model_id', value)}
+                  value={formData.model_id && formData.model_id.trim() !== '' ? formData.model_id : undefined} 
+                  onValueChange={(value) => {
+                    if (value && value !== 'no-models-available') {
+                      handleInputChange('model_id', value);
+                    }
+                  }}
                   disabled={loadingModels}
                 >
                   <SelectTrigger className={errors.model_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder={loadingModels ? "Carregando..." : "Selecione o modelo"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {models
-                      .filter(model => !selectedBrandId || model.brand_id.toString() === selectedBrandId)
-                      .map((model) => (
+                    {(() => {
+                      const filteredModels = models.filter(model => 
+                        !selectedBrandId || 
+                        selectedBrandId === 'all' || 
+                        selectedBrandId === '' ||
+                        model.brand_id.toString() === selectedBrandId
+                      );
+                      
+                      if (filteredModels.length === 0) {
+                        return (
+                          <SelectItem value="no-models-available" disabled>
+                            Nenhum modelo disponível
+                          </SelectItem>
+                        );
+                      }
+                      
+                      return filteredModels.map((model) => (
                         <SelectItem key={model.id} value={model.id.toString()}>
                           {model.name}
                         </SelectItem>
-                      ))}
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
                 {errors.model_id && (
@@ -273,8 +356,8 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
               </div>
             </div>
 
-            {/* Quantidade */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Quantidade, BTUs e Status */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="quantity" className="text-sm font-medium">
                   Quantidade <span className="text-red-500">*</span>
@@ -293,6 +376,58 @@ export function FormularioArCondicionado({ onVoltar, editingAr }: FormularioArCo
                   <p className="text-sm text-red-600 flex items-center gap-1">
                     <AlertCircle className="h-4 w-4" />
                     {errors.quantity}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="btus" className="text-sm font-medium">
+                  BTUs
+                </Label>
+                <Input
+                  id="btus"
+                  type="number"
+                  min="7000"
+                  max="120000"
+                  step="1000"
+                  placeholder="Ex: 12000"
+                  value={formData.btus}
+                  onChange={(e) => handleInputChange('btus', e.target.value)}
+                  className={errors.btus ? 'border-red-500' : ''}
+                />
+                {errors.btus && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.btus}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">
+                  Capacidade de refrigeração (opcional)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status" className="text-sm font-medium">
+                  Status <span className="text-red-500">*</span>
+                </Label>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value) => handleInputChange('status', value)}
+                >
+                  <SelectTrigger className={errors.status ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="funcionando">Funcionando</SelectItem>
+                    <SelectItem value="manutencao">Em Manutenção</SelectItem>
+                    <SelectItem value="defeito">Com Defeito</SelectItem>
+                    <SelectItem value="desativado">Desativado</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.status && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.status}
                   </p>
                 )}
               </div>

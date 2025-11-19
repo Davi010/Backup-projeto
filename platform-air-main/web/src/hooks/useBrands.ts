@@ -21,7 +21,8 @@ export const useBrands = (): UseBrandsReturn => {
     setLoading(true);
     setError(null);
     try {
-      const response = await brandService.list();
+      // Buscar todas as marcas (sem limite de paginação)
+      const response = await brandService.list({ per_page: 100 });
       if (response.status === 'success' && response.data) {
         setBrands(response.data);
       } else {
@@ -29,6 +30,7 @@ export const useBrands = (): UseBrandsReturn => {
       }
     } catch (err) {
       setError('Erro de conexão ao carregar marcas');
+      console.error('Erro ao buscar marcas:', err);
     } finally {
       setLoading(false);
     }
@@ -102,5 +104,8 @@ export const useBrands = (): UseBrandsReturn => {
     deleteBrand,
   };
 };
+
+
+
 
 

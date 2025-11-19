@@ -33,6 +33,17 @@ class EquipmentStoreRequest extends FormRequest
                 'min:1',
                 'max:9999',
             ],
+            'btus' => [
+                'nullable',
+                'integer',
+                'min:7000',
+                'max:120000',
+            ],
+            'status' => [
+                'required',
+                'string',
+                'in:funcionando,manutencao,defeito,desativado',
+            ],
             'notes' => [
                 'nullable',
                 'string',
@@ -57,6 +68,11 @@ class EquipmentStoreRequest extends FormRequest
             'quantity.integer' => 'A quantidade deve ser um número inteiro.',
             'quantity.min' => 'A quantidade mínima é 1.',
             'quantity.max' => 'A quantidade máxima é 9999.',
+            'btus.integer' => 'Os BTUs devem ser um número inteiro.',
+            'btus.min' => 'Os BTUs mínimos são 7000.',
+            'btus.max' => 'Os BTUs máximos são 120000.',
+            'status.required' => 'O status é obrigatório.',
+            'status.in' => 'O status deve ser: funcionando, manutencao, defeito ou desativado.',
             'notes.string' => 'As notas devem ser uma string.',
             'notes.max' => 'As notas não podem ter mais de 1000 caracteres.',
         ];

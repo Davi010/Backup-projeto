@@ -14,6 +14,8 @@ class Equipment extends Model
         'name',
         'model_id',
         'quantity',
+        'btus',
+        'status',
         'notes',
     ];
 
