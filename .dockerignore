@@ -1,0 +1,47 @@
+# Diretórios de dependências (não precisam estar no build)
+app/vendor
+app/node_modules
+web/node_modules
+
+# Logs e cache
+app/storage/logs
+app/storage/framework/cache
+app/storage/framework/sessions
+app/storage/framework/views
+app/bootstrap/cache
+
+# Arquivos de ambiente
+app/.env
+app/.env.backup
+app/.env.production
+
+# Arquivos de teste
+app/tests
+app/phpunit.xml
+
+# Arquivos de documentação
+*.md
+!README.md
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose.yml
+# Não ignorar .docker pois contém arquivos necessários para o build
+# .docker
+
+# Outros
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
