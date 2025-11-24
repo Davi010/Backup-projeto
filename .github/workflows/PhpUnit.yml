@@ -17,6 +17,12 @@ jobs:
       - name: Start Docker containers
         run: docker compose up -d --build
 
+      - name: Wait for containers to be ready
+        run: |
+          echo "Aguardando containers estarem prontos..."
+          sleep 30
+          docker compose ps
+
       - name: Create .env inside container
         run: |
           docker compose exec -T app bash -c "cat > .env <<EOL
@@ -30,17 +36,31 @@ jobs:
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           EOL"
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@v3
-        with:
-          path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Install Composer dependencies inside container
+      - name: Wait for Composer dependencies to be installed
         run: |
-          docker compose exec -T app bash -c "COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts --classmap-authoritative || true"
+          echo "Aguardando dependências do Composer serem instaladas..."
+          timeout=120
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if docker compose exec -T app test -f /app/vendor/autoload.php; then
+              echo "Dependências instaladas!"
+              break
+            fi
+            echo "Aguardando... ($elapsed/$timeout segundos)"
+            sleep 5
+            elapsed=$((elapsed + 5))
+          done
+          
+          # Verificar se o arquivo existe
+          if ! docker compose exec -T app test -f /app/vendor/autoload.php; then
+            echo "Instalando dependências manualmente..."
+            docker compose exec -T app bash -c "cd /app && composer install --no-interaction --prefer-dist --no-scripts"
+          fi
+
+      - name: Verify vendor directory
+        run: |
+          docker compose exec -T app ls -la /app/vendor/autoload.php || echo "Vendor não encontrado!"
+          docker compose exec -T app test -f /app/vendor/autoload.php || exit 1
 
       - name: Generate application key
         run: docker compose exec -T app php artisan key:generate
