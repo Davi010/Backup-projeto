@@ -21,12 +21,14 @@ import './commands';
 
 // Hide fetch/XHR requests from command log
 const app = window.top;
-if (!app.document.head.querySelector('[data-hide-command-log-request]')) {
-  const style = app.document.createElement('style');
-  style.innerHTML =
-    '.command-name-request, .command-name-xhr { display: none }';
-  style.setAttribute('data-hide-command-log-request', '');
-  app.document.head.appendChild(style);
+if (app && app.document && app.document.head) {
+  if (!app.document.head.querySelector('[data-hide-command-log-request]')) {
+    const style = app.document.createElement('style');
+    style.innerHTML =
+      '.command-name-request, .command-name-xhr { display: none }';
+    style.setAttribute('data-hide-command-log-request', '');
+    app.document.head.appendChild(style);
+  }
 }
 
 declare global {
@@ -40,16 +42,24 @@ declare global {
       
       /**
        * Custom command to fill equipment form
-       * @example cy.fillEquipmentForm({ name: 'Test', model_id: '1' })
+       * @example cy.fillEquipmentForm({ name: 'Test', selectFirstModel: true })
        */
       fillEquipmentForm(data: {
         name?: string;
+        brand_id?: string;
         model_id?: string;
+        selectFirstModel?: boolean;
         quantity?: string;
         btus?: string;
         status?: string;
         notes?: string;
       }): Chainable<void>;
+      
+      /**
+       * Custom command to select first available model
+       * @example cy.selectFirstModel()
+       */
+      selectFirstModel(): Chainable<void>;
     }
   }
 }

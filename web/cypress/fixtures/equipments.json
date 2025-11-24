@@ -1,0 +1,46 @@
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "Ar Condicionado Sala 101",
+      "model_id": 1,
+      "quantity": 2,
+      "btus": 12000,
+      "status": "funcionando",
+      "notes": "Equipamento novo",
+      "created_at": "2025-01-01T00:00:00.000000Z",
+      "updated_at": "2025-01-01T00:00:00.000000Z",
+      "model": {
+        "id": 1,
+        "name": "Split 12000 BTUs",
+        "brand_id": 1,
+        "brand": {
+          "id": 1,
+          "name": "Samsung"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Ar Condicionado Sala 102",
+      "model_id": 2,
+      "quantity": 1,
+      "btus": 18000,
+      "status": "funcionando",
+      "notes": null,
+      "created_at": "2025-01-01T00:00:00.000000Z",
+      "updated_at": "2025-01-01T00:00:00.000000Z",
+      "model": {
+        "id": 2,
+        "name": "Split 18000 BTUs",
+        "brand_id": 1,
+        "brand": {
+          "id": 1,
+          "name": "Samsung"
+        }
+      }
+    }
+  ]
+}
+
