@@ -1,0 +1,76 @@
+name: Run Backend Tests
+
+on:
+  push:
+    branches: [ developer, main ]
+  pull_request:
+    branches: [ developer, main ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Start Docker containers
+        run: docker compose up -d --build
+
+      - name: Wait for containers to be ready
+        run: |
+          echo "Aguardando containers estarem prontos..."
+          sleep 30
+          docker compose ps
+
+      - name: Create .env inside container
+        run: |
+          docker compose exec -T app bash -c "cat > .env <<EOL
+          APP_ENV=dev
+          APP_KEY=
+          DB_CONNECTION=mysql
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_DATABASE=${{ secrets.DB_DATABASE }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          EOL"
+
+      - name: Wait for Composer dependencies to be installed
+        run: |
+          echo "Aguardando dependências do Composer serem instaladas..."
+          timeout=120
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if docker compose exec -T app test -f /app/vendor/autoload.php; then
+              echo "Dependências instaladas!"
+              break
+            fi
+            echo "Aguardando... ($elapsed/$timeout segundos)"
+            sleep 5
+            elapsed=$((elapsed + 5))
+          done
+          
+          # Verificar se o arquivo existe
+          if ! docker compose exec -T app test -f /app/vendor/autoload.php; then
+            echo "Instalando dependências manualmente..."
+            docker compose exec -T app bash -c "cd /app && composer install --no-interaction --prefer-dist --no-scripts"
+          fi
+
+      - name: Verify vendor directory
+        run: |
+          docker compose exec -T app ls -la /app/vendor/autoload.php || echo "Vendor não encontrado!"
+          docker compose exec -T app test -f /app/vendor/autoload.php || exit 1
+
+      - name: Generate application key
+        run: docker compose exec -T app php artisan key:generate
+
+      - name: Run migrations
+        run: docker compose exec -T app php artisan migrate --force
+
+      - name: Run PHPUnit tests
+        run: docker compose exec -T app vendor/bin/phpunit --testdox
+
+      - name: Shutdown Docker containers
+        if: always()
+        run: docker compose down -v
